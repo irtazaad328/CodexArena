@@ -21,11 +21,8 @@ def get_db():
 
 # ── VULNERABLE FUNCTION (To be patched by IBM Bob / Blue Agent) ───────────────
 def process_transfer(conn: sqlite3.Connection, from_id: int, to_id: int, amount: float) -> bool:
-    # [BLUE AGENT PATCH]: Invariant guard — reject negative and zero transfers
-    if amount <= 0:
-        return False
     """
-    [PATCHED]: Validates amount > 0.
+    [VULNERABLE]: Does not validate amount > 0.
     amount = -10,000 causes:
        from_balance - (-10000) => +10,000 (Victim gets drained!)
        to_balance + (-10000)   => -10,000

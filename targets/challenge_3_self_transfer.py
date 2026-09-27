@@ -20,11 +20,8 @@ def get_db():
 
 # ── VULNERABLE FUNCTION (To be patched by IBM Bob / Blue Agent) ───────────────
 def process_transfer(conn: sqlite3.Connection, from_id: int, to_id: int, amount: float) -> bool:
-    # [BLUE AGENT PATCH]: Invariant guard — prohibit zero-sum self-transfers
-    if from_id == to_id:
-        return False
     """
-    [PATCHED]: Disallows self-transfer.
+    [VULNERABLE]: Does not check if from_id == to_id.
     """
     cur = conn.cursor()
     cur.execute("SELECT balance FROM accounts WHERE id = ?", (from_id,))

@@ -20,15 +20,9 @@ def get_db():
     return conn
 
 # ── VULNERABLE FUNCTION (To be patched by IBM Bob / Blue Agent) ───────────────
-_seen_traces = set()
-
 def process_transfer(conn: sqlite3.Connection, from_id: int, to_id: int, amount: float, trace_id: str) -> bool:
-    # [BLUE AGENT PATCH]: Idempotency cache — reject duplicate transactions
-    if trace_id in _seen_traces:
-        return False
-    _seen_traces.add(trace_id)
     """
-    [PATCHED]: Enforces idempotency cache. Duplicate requests are re-executed blindly. Duplicate requests are re-executed blindly. Duplicate requests are re-executed blindly.
+    [VULNERABLE]: Ignores trace_id! Duplicate requests are re-executed blindly. Duplicate requests are re-executed blindly. Duplicate requests are re-executed blindly. Duplicate requests are re-executed blindly.
     """
     cur = conn.cursor()
     cur.execute("SELECT balance FROM accounts WHERE id = ?", (from_id,))

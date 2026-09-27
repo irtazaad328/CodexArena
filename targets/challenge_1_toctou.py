@@ -31,10 +31,19 @@ async def process_transfer(conn: sqlite3.Connection, from_id: int, to_id: int, a
     Multiple concurrent coroutines see the same stale balance!
     """
     cur = conn.cursor()
-    # [BLUE AGENT PATCH]: Single atomic conditional UPDATE eliminates TOCTOU window
-    cur.execute("UPDATE accounts SET balance = balance - ? WHERE id = ? AND balance >= ?", (amount, from_id, amount))
-    if cur.rowcount == 0:
+    cur.execute("SELECT balance FROM accounts WHERE id = ?", (from_id,))
+    row = cur.fetchone()
+    if not row:
         return False
+    balance = row[0]
+
+    # Race window — other coroutines read before this one writes!
+    await asyncio.sleep(0.001)
+
+    if balance < amount:
+        return False
+
+    cur.execute("UPDATE accounts SET balance = balance - ? WHERE id = ?", (amount, from_id))
     cur.execute("UPDATE accounts SET balance = balance + ? WHERE id = ?", (amount, to_id))
     conn.commit()
     return True

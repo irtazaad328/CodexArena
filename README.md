@@ -66,21 +66,25 @@ codexarena/
 │   ├── database.py           SQLite — unsafe (TOCTOU) + safe (atomic) transfer
 │   └── schemas.py            Pydantic models
 │
-├── arena/                    Battle engine — core logic
+├── targets/                  Dynamic target files folder (drop any .py here to test)
+│   ├── challenge_1_toctou.py         TOCTOU concurrency race condition
+│   ├── challenge_2_negative_drain.py Negative amount drain vulnerability
+│   ├── challenge_3_self_transfer.py  Self-transfer balance doubling vulnerability
+│   └── challenge_4_replay_attack.py  Idempotency & transaction replay attack
+│
+├── arena/                    Battle engine & autonomous agents
 │   ├── models.py             Battle, TelemetryRecord, ResilienceCertificate
 │   ├── battle_manager.py     Singleton state store + SSE pub/sub
 │   ├── red_agent.py          50-concurrent-request TOCTOU attacker
-│   └── blue_agent.py         Autonomous patch generation + application
+│   ├── blue_agent.py         Autonomous patch generation + application
+│   └── target_scanner.py     Dynamic file detector & autonomous vulnerability patcher
 │
 ├── mcp_server/
 │   └── server.py             FastMCP server — 5 tools for Bob (stdio)
 │
 ├── hud/
 │   ├── hud_server.py         FastAPI SSE server  (port 8000)
-│   └── templates/index.html  Dark-mode Tailwind cockpit
-│
-├── demo/
-│   └── bob_session.md        Scripted Bob battle narrative
+│   └── templates/index.html  Dark-mode Tailwind cockpit & interactive certificate
 │
 └── .bob/
     └── mcp.json              Bob MCP server registration
@@ -189,12 +193,9 @@ Bob should list all 5 tools.
 
 ---
 
-## Demo Walkthrough
+## Battle Workflow
 
-See [`demo/bob_session.md`](demo/bob_session.md) for the full scripted narrative
-with exact prompts, tool calls, and sample outputs.
-
-Quick summary of the battle flow:
+Execution flow across the 5 MCP tools:
 
 ```
 Step 1  Bob calls launch_arena_battle("http://localhost:9000", "race_condition")
