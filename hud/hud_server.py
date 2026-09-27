@@ -33,10 +33,22 @@ templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
 # HTML cockpit
 # ──────────────────────────────────────────────────────────────────────────────
 
+from fastapi.staticfiles import StaticFiles
+
+_DOCS_DIR = Path(__file__).parent.parent / "docs"
+if _DOCS_DIR.exists():
+    app.mount("/docs", StaticFiles(directory=str(_DOCS_DIR)), name="docs")
+
 @app.get("/", response_class=HTMLResponse)
 async def cockpit(request: Request):
     html_file = _TEMPLATES_DIR / "index.html"
     return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
+
+
+@app.get("/slides", response_class=HTMLResponse)
+async def slides_presentation(request: Request):
+    slides_file = _DOCS_DIR / "slides.html"
+    return HTMLResponse(content=slides_file.read_text(encoding="utf-8"))
 
 
 # ──────────────────────────────────────────────────────────────────────────────

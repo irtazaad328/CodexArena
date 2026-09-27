@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodexArena — Pitch Deck | IBM Bob 2.0 Hackathon</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #09090b;
+      color: #f4f4f5;
+      overflow: hidden;
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .slide {
+      display: none;
+      height: 100vh;
+      width: 100vw;
+      padding: 3rem 4.5rem;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .slide.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .glow-cyan {
+      box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.25);
+    }
+    .glow-red {
+      box-shadow: 0 0 35px -5px rgba(239, 68, 68, 0.25);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+    }
+    @media print {
+      body {
+        overflow: visible !important;
+        background: #09090b !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .no-print { display: none !important; }
+      .slide {
+        display: flex !important;
+        height: 100vh !important;
+        width: 100vw !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+        padding: 2.5rem 3.5rem !important;
+      }
+      @page {
+        size: landscape;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 select-none">
+
+  <!-- Top Progress Bar -->
+  <div class="fixed top-0 left-0 w-full h-1.5 bg-zinc-900 z-50 no-print">
+    <div id="progressBar" class="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-cyan-400 transition-all duration-300 w-1/6"></div>
+  </div>
+
+  <!-- Persistent Floating Controls (Bottom Bar) -->
+  <div class="fixed bottom-6 right-8 flex items-center gap-3 z-50 no-print bg-zinc-900/90 backdrop-blur border border-zinc-800 rounded-full px-4 py-2 shadow-2xl">
+    <span id="slideCounter" class="font-mono text-xs text-zinc-400 font-bold px-2">1 / 6</span>
+    <button onclick="prevSlide()" class="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-300 hover:text-white transition" title="Previous (Left Arrow)">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <button onclick="nextSlide()" class="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-300 hover:text-white transition" title="Next (Right Arrow / Space)">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </button>
+    <div class="h-4 w-px bg-zinc-700"></div>
+    <button onclick="toggleFullscreen()" class="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-300 hover:text-white transition" title="Fullscreen (F)">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+    </button>
+    <button onclick="window.print()" class="flex items-center gap-1.5 text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-lg px-2.5 py-1.5 transition" title="Save as PDF">
+      <span>Print / PDF</span>
+    </button>
+  </div>
+
+  <!-- SLIDE 1: COVER -->
+  <section class="slide active" id="slide-1">
+    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+      <div class="flex items-center gap-3">
+        <span class="px-2.5 py-1 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 font-mono text-xs font-semibold tracking-wider">IBM BOB 2.0 HACKATHON ENTRY</span>
+        <span class="px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-mono text-xs font-semibold">FASTMCP ORCHESTRATED</span>
+      </div>
+      <div class="text-right font-mono text-xs text-zinc-500">LABLAB.AI 2026</div>
+    </div>
+
+    <div class="my-auto max-w-4xl">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-mono mb-6">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Autonomous Chaos & Self-Healing Engine
+      </div>
+      <h1 class="text-6xl font-black tracking-tight text-white mb-4 leading-tight">
+        ⚔️ <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-emerald-400">CodexArena</span>
+      </h1>
+      <p class="text-2xl text-zinc-300 font-light leading-relaxed mb-8 max-w-3xl">
+        Turning AI from a passive code assistant into an <span class="text-white font-medium">autonomous cyber-resilience engineer</span> that stress-tests, breaks, and mathematically heals mission-critical microservices.
+      </p>
+
+      <div class="grid grid-cols-3 gap-4 pt-4">
+        <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800">
+          <div class="text-cyan-400 font-mono text-sm font-semibold mb-1">🔴 Red Agent</div>
+          <div class="text-xs text-zinc-400">Adversarial 50x Concurrency & Invariant Chaos Attacker</div>
+        </div>
+        <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800">
+          <div class="text-emerald-400 font-mono text-sm font-semibold mb-1">🔵 Blue Agent</div>
+          <div class="text-xs text-zinc-400">Autonomous Hot-Patch Synthesis & On-Disk Healer</div>
+        </div>
+        <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800">
+          <div class="text-indigo-400 font-mono text-sm font-semibold mb-1">📜 100% Certified</div>
+          <div class="text-xs text-zinc-400">SHA-256 Cryptographic Resilience Certification</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center text-xs text-zinc-500 font-mono border-t border-zinc-800/80 pt-4">
+      <span>Presented by Team CodexArena (irtazaad328)</span>
+      <span>github.com/irtazaad328/CodexArena</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: THE PROBLEM -->
+  <section class="slide" id="slide-2">
+    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+      <div class="font-mono text-xs text-red-400 font-semibold tracking-wider">01 / THE PROBLEM</div>
+      <div class="font-mono text-xs text-zinc-500">THE TESTING PARADOX</div>
+    </div>
+
+    <div class="my-auto">
+      <h2 class="text-4xl font-extrabold text-white mb-3">Why Current CI/CD Pipelines Fail in Production</h2>
+      <p class="text-zinc-400 text-base mb-8 max-w-3xl">Teams maintain 90%+ code coverage with thousands of unit tests, yet billion-dollar outages and double-spending exploits continue to slip through.</p>
+
+      <div class="grid grid-cols-3 gap-6">
+        <div class="p-6 rounded-2xl bg-zinc-900/70 border border-red-950 hover:border-red-800/80 transition glow-red">
+          <div class="w-10 h-10 rounded-xl bg-red-950/80 text-red-400 flex items-center justify-center font-mono font-bold text-lg mb-4 border border-red-800/50">01</div>
+          <h3 class="text-lg font-bold text-white mb-2">Single-Threaded Blindspot</h3>
+          <p class="text-xs text-zinc-400 leading-relaxed">Unit tests run in sequential, isolated memory. They never simulate the chaotic multi-threaded conditions, lock contention, or race windows of live production traffic.</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-zinc-900/70 border border-amber-950 hover:border-amber-800/80 transition">
+          <div class="w-10 h-10 rounded-xl bg-amber-950/80 text-amber-400 flex items-center justify-center font-mono font-bold text-lg mb-4 border border-amber-800/50">02</div>
+          <h3 class="text-lg font-bold text-white mb-2">Silent Invariant Violations</h3>
+          <p class="text-xs text-zinc-400 leading-relaxed">TOCTOU (Time-of-Check to Time-of-Use), negative balance drains, and replay attacks slip past linters because individual lines look syntactically innocent.</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700 transition">
+          <div class="w-10 h-10 rounded-xl bg-zinc-800 text-zinc-300 flex items-center justify-center font-mono font-bold text-lg mb-4 border border-zinc-700">03</div>
+          <h3 class="text-lg font-bold text-white mb-2">Billion-Dollar Disasters</h3>
+          <p class="text-xs text-zinc-400 leading-relaxed">From CrowdStrike-scale global service outages to financial double-spending, production failures cost billions before engineers can even locate the root cause.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center text-xs text-zinc-500 font-mono border-t border-zinc-800/80 pt-4">
+      <span>CodexArena — The Problem</span>
+      <span>Slide 2 of 6</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: THE SOLUTION -->
+  <section class="slide" id="slide-3">
+    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+      <div class="font-mono text-xs text-cyan-400 font-semibold tracking-wider">02 / THE ARCHITECTURE</div>
+      <div class="font-mono text-xs text-zinc-500">AUTONOMOUS DUAL-AGENT ENGINE</div>
+    </div>
+
+    <div class="my-auto">
+      <h2 class="text-4xl font-extrabold text-white mb-3">An Active Digital Colosseum for Code</h2>
+      <p class="text-zinc-400 text-base mb-8 max-w-3xl">Drop any Python microservice file into the <code class="text-cyan-300 bg-zinc-900 px-2 py-0.5 rounded font-mono text-sm">targets/</code> folder. CodexArena autonomously pits adversarial attacker against self-healing engineer.</p>
+
+      <div class="grid grid-cols-2 gap-8">
+        <div class="p-7 rounded-2xl bg-zinc-900/70 border border-red-900/40 relative overflow-hidden">
+          <div class="absolute top-0 right-0 px-3 py-1 bg-red-950/80 border-b border-l border-red-800/60 font-mono text-xs text-red-400 rounded-bl-xl font-semibold">ATTACK PHASE</div>
+          <h3 class="text-2xl font-bold text-red-400 mb-3 flex items-center gap-2">
+            <span>🔴 Red Agent</span>
+          </h3>
+          <p class="text-xs text-zinc-300 mb-4">Adversarial Stress Engine simulating hostile real-world vectors:</p>
+          <ul class="space-y-2 text-xs text-zinc-400 font-mono">
+            <li class="flex items-center gap-2"><span class="text-red-400">▸</span> 50 concurrent requests targeting TOCTOU read-write splits</li>
+            <li class="flex items-center gap-2"><span class="text-red-400">▸</span> Negative balance injection & ghost overdraft probes</li>
+            <li class="flex items-center gap-2"><span class="text-red-400">▸</span> Zero-sum self-transfer balance doubling exploits</li>
+            <li class="flex items-center gap-2"><span class="text-red-400">▸</span> High-velocity trace idempotency replay attacks</li>
+          </ul>
+        </div>
+
+        <div class="p-7 rounded-2xl bg-zinc-900/70 border border-emerald-900/40 relative overflow-hidden glow-emerald">
+          <div class="absolute top-0 right-0 px-3 py-1 bg-emerald-950/80 border-b border-l border-emerald-800/60 font-mono text-xs text-emerald-400 rounded-bl-xl font-semibold">HEAL PHASE</div>
+          <h3 class="text-2xl font-bold text-emerald-400 mb-3 flex items-center gap-2">
+            <span>🔵 Blue Agent</span>
+          </h3>
+          <p class="text-xs text-zinc-300 mb-4">Autonomous Remediation & Verification Pipeline:</p>
+          <ul class="space-y-2 text-xs text-zinc-400 font-mono">
+            <li class="flex items-center gap-2"><span class="text-emerald-400">▸</span> Intercepts real-time crash telemetry & state drift dumps</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">▸</span> Synthesizes precision atomic row-level SQL & invariant guards</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">▸</span> Patches target files directly on disk (permanent hardening)</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-400">▸</span> Immediate secondary re-attack proving 100% resilience</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center text-xs text-zinc-500 font-mono border-t border-zinc-800/80 pt-4">
+      <span>CodexArena — Architecture</span>
+      <span>Slide 3 of 6</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: IBM BOB & FASTMCP INTEGRATION -->
+  <section class="slide" id="slide-4">
+    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+      <div class="font-mono text-xs text-emerald-400 font-semibold tracking-wider">03 / THE BRAIN</div>
+      <div class="font-mono text-xs text-zinc-500">IBM BOB 2.0 & FASTMCP</div>
+    </div>
+
+    <div class="my-auto">
+      <h2 class="text-4xl font-extrabold text-white mb-2">Orchestrated via Model Context Protocol</h2>
+      <p class="text-zinc-400 text-base mb-6 max-w-3xl">IBM Bob is not merely an external code editor — Bob acts as the direct commander of the arena over FastMCP stdio tools.</p>
+
+      <div class="grid grid-cols-3 gap-6 mb-6">
+        <div class="col-span-2 bg-zinc-900/80 border border-zinc-800 rounded-2xl p-5 overflow-hidden">
+          <div class="text-xs font-mono text-cyan-400 font-bold mb-3">5 FastMCP Tools Registered in .bob/mcp.json</div>
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="text-zinc-500 border-b border-zinc-800">
+                <th class="pb-2">Tool Name</th>
+                <th class="pb-2">Action</th>
+                <th class="pb-2">Autonomous Outcome</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-800/50 text-zinc-300">
+              <tr>
+                <td class="py-2.5 text-cyan-300">launch_arena_battle</td>
+                <td>service_path, attack_type</td>
+                <td class="text-zinc-400">Fires concurrent Red Agent exploit</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 text-cyan-300">get_crash_telemetry</td>
+                <td>battle_id</td>
+                <td class="text-zinc-400">Captures balance drift & corrupted state</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 text-cyan-300">apply_hot_patch</td>
+                <td>battle_id, patch_diff</td>
+                <td class="text-zinc-400">Synthesizes atomic SQL & updates disk</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 text-cyan-300">verify_resilience</td>
+                <td>battle_id</td>
+                <td class="text-zinc-400">Re-executes exploit to prove 100% immunity</td>
+              </tr>
+              <tr>
+                <td class="py-2.5 text-cyan-300">export_resilience_certificate</td>
+                <td>battle_id</td>
+                <td class="text-zinc-400">Issues cryptographically signed JSON & PDF</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bg-zinc-900/80 border border-cyan-900/40 rounded-2xl p-5 flex flex-col justify-between glow-cyan">
+          <div>
+            <div class="text-xs font-mono text-cyan-400 font-bold mb-2">Verified Task Consumption</div>
+            <div class="text-4xl font-black text-white mb-1">242.8k</div>
+            <div class="text-xs text-zinc-400 mb-4">Context tokens evaluated in single session</div>
+            
+            <div class="text-3xl font-black text-emerald-400 mb-1">25 / 25</div>
+            <div class="text-xs text-zinc-400 mb-4">Multi-step execution tasks completed</div>
+
+            <div class="text-2xl font-bold text-zinc-200 mb-1">31.64</div>
+            <div class="text-xs text-zinc-400">Bobcoins consumed with 0% drift</div>
+          </div>
+          <div class="text-[10px] font-mono text-zinc-500 border-t border-zinc-800 pt-2">
+            Task ID: 4d6a28e9ae59ca148f27c3d07811d1b3
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center text-xs text-zinc-500 font-mono border-t border-zinc-800/80 pt-4">
+      <span>CodexArena — IBM Bob & MCP</span>
+      <span>Slide 4 of 6</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: CYBER WAR-ROOM HUD & CERTIFICATE -->
+  <section class="slide" id="slide-5">
+    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+      <div class="font-mono text-xs text-indigo-400 font-semibold tracking-wider">04 / THE INTERFACE</div>
+      <div class="font-mono text-xs text-zinc-500">CYBER WAR-ROOM & CERTIFICATION</div>
+    </div>
+
+    <div class="my-auto">
+      <h2 class="text-4xl font-extrabold text-white mb-2">Live Visibility & Cryptographic Proof</h2>
+      <p class="text-zinc-400 text-base mb-6 max-w-3xl">Real-time dark-mode cockpit streamed via Server-Sent Events (SSE) to monitor adversarial battles and generate auditable certificates.</p>
+
+      <div class="grid grid-cols-2 gap-8 items-center">
+        <div class="space-y-4">
+          <div class="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+            <div class="text-cyan-400 font-mono text-xs font-semibold mb-1">📡 Real-Time Combat Feed</div>
+            <div class="text-xs text-zinc-400">Sub-millisecond event streaming tracking request status, database latencies, and payload captures.</div>
+          </div>
+          <div class="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+            <div class="text-emerald-400 font-mono text-xs font-semibold mb-1">🎯 Dynamic 0–100% Resilience Gauge</div>
+            <div class="text-xs text-zinc-400">Mathematical resilience index that drops to 0% upon vulnerability discovery and locks at 100% after verified healing.</div>
+          </div>
+          <div class="p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+            <div class="text-purple-400 font-mono text-xs font-semibold mb-1">🔒 SHA-256 Tamper-Proof Certificate</div>
+            <div class="text-xs text-zinc-400">Every certified battle generates a cryptographic digest sealing the timestamp, hardened target inventory, and vulnerability verdict.</div>
+          </div>
+        </div>
+
+        <div class="relative rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-900/90 p-2">
+          <img src="screenshots/war_room_certified.png" alt="CodexArena Certified HUD" class="w-full rounded-xl object-cover" onerror="this.parentElement.innerHTML='<div class=\'p-12 text-center text-zinc-500 font-mono text-sm\'>[Cyber War-Room HUD Screenshot]<br>100% Resilience Certified</div>'">
+          <div class="absolute bottom-4 right-4 bg-emerald-950/90 text-emerald-400 border border-emerald-700/80 px-3 py-1 rounded-full font-mono text-xs font-bold">
+            100% HARDENED
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center text-xs text-zinc-500 font-mono border-t border-zinc-800/80 pt-4">
+      <span>CodexArena — War-Room HUD</span>
+      <span>Slide 5 of 6</span>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: BUSINESS IMPACT & ROADMAP -->
+  <section class="slide" id="slide-6">
+    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-4">
+      <div class="font-mono text-xs text-cyan-400 font-semibold tracking-wider">05 / VISION & IMPACT</div>
+      <div class="font-mono text-xs text-zinc-500">THE FUTURE OF RESILIENCE</div>
+    </div>
+
+    <div class="my-auto">
+      <h2 class="text-4xl font-extrabold text-white mb-2">From Hours of Downtime to Autonomous Seconds</h2>
+      <p class="text-zinc-400 text-base mb-8 max-w-3xl">CodexArena shifts cyber-defense left by guaranteeing microservices withstand adversarial conditions before touching production.</p>
+
+      <div class="grid grid-cols-3 gap-6 mb-8">
+        <div class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+          <div class="text-emerald-400 text-3xl font-black mb-2">$0</div>
+          <h3 class="text-sm font-bold text-white mb-1">Zero-Day Financial Loss</h3>
+          <p class="text-xs text-zinc-400 leading-relaxed">Eliminates double-spending, race exploits, and ghost overdrafts prior to software release.</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+          <div class="text-cyan-400 text-3xl font-black mb-2">&lt; 3s</div>
+          <h3 class="text-sm font-bold text-white mb-1">Mean Time to Remediation</h3>
+          <p class="text-xs text-zinc-400 leading-relaxed">Autonomous telemetry analysis, hot-patch generation, and on-disk verification in seconds.</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+          <div class="text-purple-400 text-3xl font-black mb-2">Multi-Lang</div>
+          <h3 class="text-sm font-bold text-white mb-1">Extensible Roadmap</h3>
+          <p class="text-xs text-zinc-400 leading-relaxed">Expanding from Python microservices to Go, Rust, and Solidity/EVM smart contracts.</p>
+        </div>
+      </div>
+
+      <div class="p-6 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-zinc-900 to-emerald-950/40 border border-cyan-800/40 text-center">
+        <p class="text-lg font-bold text-white mb-1">"AI shouldn't just autocomplete code — it should actively defend it."</p>
+        <p class="text-xs text-zinc-400 font-mono">CodexArena × IBM Bob 2.0 • Ready for Production CI/CD Integration</p>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center text-xs text-zinc-500 font-mono border-t border-zinc-800/80 pt-4">
+      <span>CodexArena — Summary & Roadmap</span>
+      <span>Slide 6 of 6</span>
+    </div>
+  </section>
+
+  <!-- Presentation Logic -->
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 6;
+
+    function showSlide(n) {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById('slide-' + n);
+      if (target) {
+        target.classList.add('active');
+        currentSlide = n;
+        document.getElementById('slideCounter').textContent = currentSlide + ' / ' + totalSlides;
+        document.getElementById('progressBar').style.width = ((currentSlide / totalSlides) * 100) + '%';
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        showSlide(1);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        showSlide(totalSlides);
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.no-print') || e.target.closest('button')) return;
+      if (e.clientX > window.innerWidth * 0.75) {
+        nextSlide();
+      } else if (e.clientX < window.innerWidth * 0.25) {
+        prevSlide();
+      }
+    });
+  </script>
+</body>
+</html>
