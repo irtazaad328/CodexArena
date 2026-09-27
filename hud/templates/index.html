@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-950 text-gray-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CodexArena — Cyber War-Room</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-track { background:#0f172a; }
+    ::-webkit-scrollbar-thumb { background:#334155; border-radius:3px; }
+
+    #gauge-arc { transition: stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1), stroke 0.6s; }
+
+    .log-attack  { color:#f87171; }
+    .log-patch   { color:#60a5fa; }
+    .log-heal    { color:#34d399; }
+    .log-cert    { color:#fbbf24; }
+    .log-default { color:#94a3b8; }
+
+    .diff-add    { background:#14532d44; color:#86efac; }
+    .diff-remove { background:#7f1d1d44; color:#fca5a5; }
+    .diff-meta   { color:#818cf8; }
+    .diff-hunk   { color:#38bdf8; }
+
+    @keyframes pulse-red  { 0%,100%{opacity:1} 50%{opacity:.3} }
+    @keyframes pulse-blue { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .pulse-red  { animation:pulse-red  1s ease-in-out infinite; }
+    .pulse-blue { animation:pulse-blue 1.2s ease-in-out infinite; }
+
+    /* 1-click launch button glow */
+    @keyframes glow-red {
+      0%,100% { box-shadow:0 0 10px #ef444488, 0 0 30px #ef444433; }
+      50%     { box-shadow:0 0 20px #ef4444cc, 0 0 60px #ef444455; }
+    }
+    @keyframes glow-gold {
+      0%,100% { box-shadow:0 0 12px #d97706aa, 0 0 35px #d9770644; }
+      50%     { box-shadow:0 0 24px #d97706ff, 0 0 70px #d9770677; }
+    }
+    #btn-launch-main { animation:glow-red 2s ease-in-out infinite; }
+    #btn-cert.unlocked { animation:glow-gold 2s ease-in-out infinite; }
+
+    /* Vector grid */
+    .vector-card { transition:background 0.4s, border-color 0.4s; }
+    .vector-card.ok      { background:#14532d33; border-color:#16a34a88; }
+    .vector-card.fail    { background:#7f1d1d33; border-color:#ef444488; }
+    .vector-card.pending { background:#1e293b; border-color:#334155; }
+
+    body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; }
+    pre, .mono { font-family:'Cascadia Code','Fira Code','Consolas',monospace; }
+
+    /* ── Certificate modal ─────────────────────────────────────────────── */
+    #cert-modal {
+      display:none; position:fixed; inset:0; z-index:100;
+      background:rgba(0,0,0,0.85); backdrop-filter:blur(4px);
+      align-items:center; justify-content:center;
+    }
+    #cert-modal.open { display:flex; }
+
+    @keyframes seal-pulse {
+      0%,100% { box-shadow:0 0 18px #d9770688, 0 0 40px #d9770633; }
+      50%     { box-shadow:0 0 32px #d97706cc, 0 0 80px #d9770655; }
+    }
+    .seal-glow { animation:seal-pulse 2.5s ease-in-out infinite; }
+
+    @media print {
+      body > *:not(#cert-modal) { display:none !important; }
+      #cert-modal { display:flex !important; position:static !important;
+        background:#030712 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      #cert-print-wrapper { box-shadow:none !important; border:2px solid #d97706 !important; max-width:100% !important; margin:0 auto !important; }
+      #cert-action-bar, #cert-close-btn, .no-print { display:none !important; }
+    }
+
+    /* ── Granite AI card ───────────────────────────────────────────────── */
+    #granite-card {
+      opacity:0; transform:translateY(8px);
+      transition:opacity 0.5s ease, transform 0.5s ease;
+    }
+    #granite-card.visible { opacity:1; transform:translateY(0); }
+
+    @keyframes granite-scan {
+      0%   { background-position:0 0; }
+      100% { background-position:0 100%; }
+    }
+    .granite-scan-line {
+      background: linear-gradient(transparent 49%, #3b82f615 50%, transparent 51%);
+      background-size: 100% 6px;
+      animation: granite-scan 1.8s linear infinite;
+      pointer-events:none;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-950">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+  <header class="border-b border-gray-800 bg-gray-900/90 backdrop-blur px-5 py-2.5 flex items-center justify-between sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl select-none">⚔️</span>
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-white leading-none">CodexArena</h1>
+        <p class="text-xs text-gray-400 leading-none mt-0.5">4-Vector Adversarial Chaos &amp; Self-Healing Engine</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="status-badge" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs font-semibold text-gray-300">
+        <span id="status-dot" class="w-2 h-2 rounded-full bg-gray-500"></span>
+        <span id="status-text">IDLE</span>
+      </div>
+      <div class="text-right hidden sm:block">
+        <div class="text-xs text-gray-500">Resilience</div>
+        <div id="score-compact" class="text-xl font-bold text-white mono">0%</div>
+      </div>
+      <div class="text-xs text-gray-600 border border-gray-800 rounded px-2 py-1">IBM Bob 2.0</div>
+    </div>
+  </header>
+
+  <!-- ══ 1-CLICK LAUNCH BAR ════════════════════════════════════════════ -->
+  <div class="bg-gray-900 border-b border-gray-800 px-5 py-3 flex items-center justify-between gap-4 flex-wrap">
+
+    <div class="flex items-center gap-3 flex-wrap">
+      <!-- Target Challenge Dropdown -->
+      <div class="flex items-center gap-2 bg-gray-800/80 px-3 py-1.5 rounded-xl border border-gray-700/80">
+        <label for="challenge-select" class="text-[11px] text-gray-400 font-bold uppercase tracking-wider">🎯 Suite:</label>
+        <select id="challenge-select" class="bg-gray-900 border border-gray-700 text-yellow-300 text-xs rounded-lg px-2.5 py-1.5 font-medium focus:ring-1 focus:ring-yellow-500 focus:outline-none cursor-pointer">
+          <option value="4vector" selected>🎯 All 4 Vectors (Full Assault &amp; Defense)</option>
+          <option value="toctou">⚡ Vector 1: TOCTOU Concurrency</option>
+          <option value="negative_drain">💸 Vector 2: Negative Invariant Drain</option>
+          <option value="self_transfer">🔄 Vector 3: Self-Transfer Invariant</option>
+          <option value="replay">🔁 Vector 4: Duplicate Replay Attack</option>
+          <option value="ledger_microservice">🏦 Live Banking Microservice (Port 9000)</option>
+        </select>
+      </div>
+
+      <!-- Live Targets Folder Badge -->
+      <div id="targets-badge-container" class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-950/60 border border-blue-800/60 rounded-xl text-xs text-blue-300">
+        <span>📁</span>
+        <span id="targets-badge-text" class="font-mono">scanning targets/…</span>
+      </div>
+
+      <!-- Primary action -->
+      <button id="btn-launch-main"
+        onclick="launchAutonomous()"
+        class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/35
+               border border-red-500/60 text-red-200 text-sm font-bold transition cursor-pointer">
+        🚀 Launch Assault &amp; Defense
+      </button>
+    </div>
+
+    <!-- Certificate (locked until CERTIFIED) -->
+    <button id="btn-cert"
+      disabled
+      onclick="downloadCert()"
+      class="flex items-center gap-2 px-5 py-2.5 rounded-xl
+             bg-gray-800 border border-gray-700 text-gray-600 text-sm font-bold
+             cursor-not-allowed opacity-60 transition-all duration-500"
+      title="Locked until battle reaches 100% resilience">
+      🔒 Download Resilience Certificate
+    </button>
+
+    <div class="text-xs text-gray-500 flex items-center gap-2 ml-auto">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+      SSE <b class="text-emerald-400">Live</b>
+    </div>
+  </div>
+
+  <!-- ══ VECTOR STATUS GRID ════════════════════════════════════════════ -->
+  <div class="px-4 pt-3 pb-1 max-w-screen-2xl mx-auto">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+
+      <div id="vec-v1" class="vector-card pending border rounded-lg px-3 py-2 text-xs mono">
+        <div class="font-bold text-gray-400 mb-0.5">V1 · TOCTOU Race</div>
+        <div id="vec-v1-detail" class="text-gray-600">waiting…</div>
+      </div>
+      <div id="vec-v2" class="vector-card pending border rounded-lg px-3 py-2 text-xs mono">
+        <div class="font-bold text-gray-400 mb-0.5">V2 · Replay / Idempotency</div>
+        <div id="vec-v2-detail" class="text-gray-600">waiting…</div>
+      </div>
+      <div id="vec-v3" class="vector-card pending border rounded-lg px-3 py-2 text-xs mono">
+        <div class="font-bold text-gray-400 mb-0.5">V3 · Self-Transfer</div>
+        <div id="vec-v3-detail" class="text-gray-600">waiting…</div>
+      </div>
+      <div id="vec-v4" class="vector-card pending border rounded-lg px-3 py-2 text-xs mono">
+        <div class="font-bold text-gray-400 mb-0.5">V4 · Rapid Burst</div>
+        <div id="vec-v4-detail" class="text-gray-600">waiting…</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ MAIN 3-COLUMN GRID ════════════════════════════════════════════ -->
+  <main class="grid grid-cols-1 lg:grid-cols-3 gap-3 p-4 max-w-screen-2xl mx-auto">
+
+    <!-- LEFT · Combat Feed -->
+    <section class="bg-gray-900 border border-gray-800 rounded-xl flex flex-col" style="height:calc(100vh - 18rem)">
+      <div class="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-200 flex items-center gap-2">
+          <span class="text-red-400">●</span> Combat Feed
+        </h2>
+        <button onclick="clearFeed()" class="text-xs text-gray-600 hover:text-gray-400">clear</button>
+      </div>
+      <div id="combat-feed" class="flex-1 overflow-y-auto p-3 space-y-0.5 mono text-xs leading-relaxed">
+        <div class="log-default">— Waiting for battle to begin —</div>
+      </div>
+    </section>
+
+    <!-- CENTER · Gauge + Metadata -->
+    <section class="bg-gray-900 border border-gray-800 rounded-xl flex flex-col" style="height:calc(100vh - 18rem)">
+      <div class="px-4 py-2.5 border-b border-gray-800">
+        <h2 class="text-sm font-semibold text-gray-200 flex items-center gap-2">
+          <span class="text-blue-400">◈</span> Resilience Gauge
+        </h2>
+      </div>
+      <div class="flex-1 flex flex-col items-center justify-center gap-4 px-5 overflow-auto">
+
+        <div class="relative">
+          <svg width="220" height="130" viewBox="0 0 240 140">
+            <path d="M 20 130 A 100 100 0 0 1 220 130" fill="none" stroke="#1e293b" stroke-width="18" stroke-linecap="round"/>
+            <path id="gauge-arc"
+                  d="M 20 130 A 100 100 0 0 1 220 130"
+                  fill="none" stroke="#3b82f6" stroke-width="18" stroke-linecap="round"
+                  stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+            <text id="gauge-text" x="120" y="115" text-anchor="middle"
+                  font-size="38" font-weight="700" fill="white"
+                  font-family="Cascadia Code,Fira Code,Consolas,monospace">0%</text>
+            <text x="120" y="135" text-anchor="middle" font-size="10" fill="#64748b"
+                  font-family="Segoe UI,system-ui,sans-serif">RESILIENCE SCORE</text>
+          </svg>
+        </div>
+
+        <div class="w-full bg-gray-800/60 rounded-lg border border-gray-700 p-3 space-y-1.5 text-xs mono">
+          <div class="flex justify-between">
+            <span class="text-gray-500">Battle ID</span>
+            <span id="meta-bid" class="text-gray-300 truncate max-w-[140px]">—</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Attack suite</span>
+            <span id="meta-type" class="text-yellow-400">—</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Status</span>
+            <span id="meta-status" class="text-blue-300">IDLE</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Requests</span>
+            <span id="meta-reqs" class="text-gray-300">—</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">Vectors hit</span>
+            <span id="meta-vhit" class="text-red-400">—</span>
+          </div>
+        </div>
+
+        <div id="verdict-banner" class="w-full hidden rounded-lg border px-4 py-2.5 text-center font-semibold text-sm"></div>
+
+      </div>
+    </section>
+
+    <!-- RIGHT · Diff Viewer + Granite AI Card (stacked) -->
+    <div class="flex flex-col gap-3">
+
+      <!-- Diff Viewer -->
+      <section class="bg-gray-900 border border-gray-800 rounded-xl flex flex-col" style="height:calc(55vh - 9rem)">
+        <div class="px-4 py-2.5 border-b border-gray-800 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-gray-200 flex items-center gap-2">
+            <span class="text-green-400">⬡</span> 4-Layer Hot-Patch
+          </h2>
+          <span id="diff-badge" class="text-xs text-gray-600 bg-gray-800 rounded px-2 py-0.5 border border-gray-700">waiting</span>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3">
+          <pre id="diff-viewer" class="mono text-xs leading-relaxed whitespace-pre-wrap break-words text-gray-500">— No patch applied yet —</pre>
+        </div>
+      </section>
+
+      <!-- IBM Granite 3.0 AI Card -->
+      <section id="granite-card" class="bg-gray-900 border border-blue-900/60 rounded-xl flex flex-col overflow-hidden relative"
+               style="height:calc(45vh - 9rem); min-height:200px">
+        <!-- Scan-line overlay -->
+        <div class="granite-scan-line absolute inset-0 z-0 rounded-xl"></div>
+
+        <div class="px-4 py-2.5 border-b border-blue-900/60 flex items-center justify-between relative z-10">
+          <h2 class="text-sm font-semibold text-blue-200 flex items-center gap-2">
+            <span class="text-blue-400">🧠</span> IBM Granite 3.0 AI Incident Synthesis
+          </h2>
+          <span id="granite-status" class="text-xs text-blue-900 bg-blue-950 rounded px-2 py-0.5 border border-blue-800">standby</span>
+        </div>
+
+        <div id="granite-body" class="flex-1 overflow-y-auto p-3 space-y-2 relative z-10">
+          <div class="text-xs text-gray-600 italic">— Waiting for telemetry to synthesise —</div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ══ CERTIFICATE MODAL ═════════════════════════════════════════════ -->
+  <div id="cert-modal" onclick="if(event.target===this)closeCertModal()">
+    <div id="cert-print-wrapper"
+         class="relative bg-gray-950 border border-yellow-700/60 rounded-2xl shadow-2xl
+                max-w-2xl w-full mx-4 overflow-hidden"
+         style="box-shadow:0 0 60px #d9770622, 0 0 120px #d9770611">
+
+      <!-- Close button -->
+      <button id="cert-close-btn" onclick="closeCertModal()"
+              class="no-print absolute top-3 right-4 text-gray-500 hover:text-gray-300 text-xl font-bold z-10 cursor-pointer w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-800 transition"
+              title="Close">✕</button>
+
+      <!-- Certificate header -->
+      <div class="bg-gradient-to-b from-yellow-950/60 to-transparent px-8 pt-8 pb-4 text-center border-b border-yellow-800/40">
+        <div class="text-xs font-bold tracking-[0.35em] text-yellow-600 uppercase mb-1">
+          IBM Bob 2.0 Hackathon
+        </div>
+        <div class="text-lg font-bold text-yellow-200 tracking-wide">
+          Adversarial Resilience Certificate
+        </div>
+        <div class="text-xs text-gray-500 mt-1">Official Record of Battle-Hardened Verification</div>
+      </div>
+
+      <!-- Golden seal -->
+      <div class="flex justify-center py-5">
+        <div class="seal-glow w-24 h-24 rounded-full border-4 border-yellow-500/80
+                    bg-gradient-to-br from-yellow-900/60 to-yellow-950
+                    flex flex-col items-center justify-center">
+          <div class="text-3xl select-none">✅</div>
+          <div class="text-yellow-400 text-xs font-bold tracking-wider mt-0.5">VERIFIED</div>
+        </div>
+      </div>
+
+      <!-- Certificate body -->
+      <div class="px-8 pb-6 space-y-3">
+
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2 text-sm">
+          <div class="flex justify-between items-start gap-4">
+            <span class="text-gray-500 shrink-0">Target Scope</span>
+            <span id="cert-target-scope" class="text-gray-200 text-right text-xs mono">targets/ folder</span>
+          </div>
+          <div class="flex justify-between items-center gap-4">
+            <span class="text-gray-500 shrink-0">Resilience Score</span>
+            <span class="text-green-400 font-bold">100% IMMUNE — 4/4 ATTACK VECTORS NEUTRALISED</span>
+          </div>
+          <div class="flex justify-between items-center gap-4">
+            <span class="text-gray-500 shrink-0">Battle ID</span>
+            <span id="cert-battle-id" class="text-gray-300 mono text-xs">—</span>
+          </div>
+          <div class="flex justify-between items-center gap-4">
+            <span class="text-gray-500 shrink-0">Issued</span>
+            <span id="cert-issued-at" class="text-gray-300 mono text-xs">—</span>
+          </div>
+        </div>
+
+        <!-- Certified Hardened Files (dynamically populated) -->
+        <div id="cert-files-box" class="bg-gray-900 border border-gray-800 rounded-lg p-4 hidden">
+          <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span>Hardened Target Files</span>
+            <span id="cert-files-count" class="text-[10px] text-emerald-400 font-mono">0 verified</span>
+          </div>
+          <div id="cert-files-list" class="space-y-1 text-xs mono">
+          </div>
+        </div>
+
+        <!-- Verified vectors -->
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+          <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Verified Attack Vectors</div>
+          <div class="grid grid-cols-2 gap-1.5 text-xs">
+            <div class="flex items-center gap-1.5 text-green-300">
+              <span class="text-green-500">✓</span> V1 · TOCTOU Concurrency Race
+            </div>
+            <div class="flex items-center gap-1.5 text-green-300">
+              <span class="text-green-500">✓</span> V2 · Replay / Idempotency Attack
+            </div>
+            <div class="flex items-center gap-1.5 text-green-300">
+              <span class="text-green-500">✓</span> V3 · Self-Transfer Invariant
+            </div>
+            <div class="flex items-center gap-1.5 text-green-300">
+              <span class="text-green-500">✓</span> V4 · Rapid Concurrency Burst
+            </div>
+          </div>
+        </div>
+
+        <!-- Cryptographic signature -->
+        <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-1">
+          <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Cryptographic Signature</div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Algorithm</span>
+            <span class="mono text-gray-400">SHA-256 / HMAC-Battle-ID</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Digest</span>
+            <span id="cert-digest" class="mono text-yellow-600/80 text-right truncate max-w-[240px]">—</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Issued by</span>
+            <span class="mono text-gray-400">CodexArena · IBM Bob 2.0 Engine</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action bar -->
+      <div id="cert-action-bar" class="px-8 pb-6 flex gap-3 justify-center">
+        <button onclick="window.print()"
+                class="flex items-center gap-2 px-5 py-2 rounded-lg bg-yellow-900/30 hover:bg-yellow-900/50
+                       border border-yellow-600/50 text-yellow-200 text-sm font-semibold transition cursor-pointer">
+          🖨️ Print / Save as PDF
+        </button>
+        <button onclick="exportRawJSON()"
+                class="flex items-center gap-2 px-5 py-2 rounded-lg bg-gray-800 hover:bg-gray-700
+                       border border-gray-600 text-gray-200 text-sm font-semibold transition cursor-pointer">
+          💾 Export Raw JSON
+        </button>
+        <button onclick="closeCertModal()"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800
+                       border border-gray-700 text-gray-400 text-sm transition cursor-pointer">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ JAVASCRIPT ════════════════════════════════════════════════════ -->
+  <script>
+  'use strict';
+
+  // ── DOM refs ─────────────────────────────────────────────────────────
+  const GAUGE_ARC   = document.getElementById('gauge-arc');
+  const GAUGE_TEXT  = document.getElementById('gauge-text');
+  const SCORE_CMP   = document.getElementById('score-compact');
+  const FEED        = document.getElementById('combat-feed');
+  const DIFF_EL     = document.getElementById('diff-viewer');
+  const DIFF_BADGE  = document.getElementById('diff-badge');
+  const VERDICT     = document.getElementById('verdict-banner');
+  const STATUS_DOT  = document.getElementById('status-dot');
+  const STATUS_TEXT = document.getElementById('status-text');
+  const META_BID    = document.getElementById('meta-bid');
+  const META_TYPE   = document.getElementById('meta-type');
+  const META_STATUS = document.getElementById('meta-status');
+  const META_REQS   = document.getElementById('meta-reqs');
+  const META_VHIT   = document.getElementById('meta-vhit');
+  const BTN_CERT    = document.getElementById('btn-cert');
+  const BTN_LAUNCH  = document.getElementById('btn-launch-main');
+
+  const ARC_TOTAL = 314.16;
+  let currentBattleId = null;
+  let feedInitialized = false;
+  let audioCtx = null;
+
+  // ── Web Audio ─────────────────────────────────────────────────────────
+
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function playSiren() {
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      const now = ctx.currentTime;
+      // Two-tone siren
+      osc.frequency.setValueAtTime(660, now);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.3);
+      osc.frequency.linearRampToValueAtTime(660, now + 0.6);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.9);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.linearRampToValueAtTime(0, now + 1.1);
+      osc.start(now); osc.stop(now + 1.2);
+    } catch(e) {}
+  }
+
+  function playRepair() {
+    try {
+      const ctx = getAudioCtx();
+      const now = ctx.currentTime;
+      [220, 330, 440, 660].forEach((freq, i) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+        gain.gain.setValueAtTime(0.0, now + i * 0.12);
+        gain.gain.linearRampToValueAtTime(0.14, now + i * 0.12 + 0.06);
+        gain.gain.linearRampToValueAtTime(0.0,  now + i * 0.12 + 0.18);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.2);
+      });
+    } catch(e) {}
+  }
+
+  function playVictory() {
+    try {
+      const ctx = getAudioCtx();
+      const now = ctx.currentTime;
+      const notes = [523, 659, 784, 1047, 784, 1047, 1047];
+      notes.forEach((freq, i) => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.13);
+        gain.gain.setValueAtTime(0.0,  now + i * 0.13);
+        gain.gain.linearRampToValueAtTime(0.18, now + i * 0.13 + 0.06);
+        gain.gain.linearRampToValueAtTime(0.0,  now + i * 0.13 + 0.22);
+        osc.start(now + i * 0.13);
+        osc.stop(now + i * 0.13 + 0.25);
+      });
+    } catch(e) {}
+  }
+
+  // ── Gauge ─────────────────────────────────────────────────────────────
+  function setGauge(score) {
+    const pct    = Math.max(0, Math.min(100, score));
+    const offset = ARC_TOTAL - (ARC_TOTAL * pct / 100);
+    GAUGE_ARC.setAttribute('stroke-dashoffset', offset.toFixed(2));
+    GAUGE_TEXT.textContent = pct.toFixed(0) + '%';
+    SCORE_CMP.textContent  = pct.toFixed(0) + '%';
+    GAUGE_ARC.setAttribute('stroke',
+      pct >= 100 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444');
+  }
+
+  // ── Status badge ──────────────────────────────────────────────────────
+  const STATUS_MAP = {
+    BATTLE_CREATED: ['bg-gray-500',  'CREATED',   ''],
+    ATTACKING:      ['bg-red-500',   'ATTACKING', 'pulse-red'],
+    CRASHED:        ['bg-red-700',   'CRASHED',   ''],
+    PATCHING:       ['bg-blue-500',  'PATCHING',  'pulse-blue'],
+    HEALED:         ['bg-teal-500',  'HEALED',    ''],
+    CERTIFIED:      ['bg-green-500', 'CERTIFIED', ''],
+  };
+
+  function setStatus(et) {
+    const [bg, label, anim] = STATUS_MAP[et] || ['bg-gray-500', et, ''];
+    STATUS_DOT.className = `w-2 h-2 rounded-full ${bg} ${anim}`;
+    STATUS_TEXT.textContent = label;
+    META_STATUS.textContent = label;
+  }
+
+  // ── Combat feed ───────────────────────────────────────────────────────
+  const LOG_CLASS = {
+    ATTACKING:'log-attack', CRASHED:'log-attack',
+    PATCHING:'log-patch',   HEALED:'log-heal',
+    CERTIFIED:'log-cert',   BATTLE_CREATED:'log-default',
+  };
+
+  function appendLog(et, msg) {
+    if (!feedInitialized) { FEED.innerHTML = ''; feedInitialized = true; }
+    const cls  = LOG_CLASS[et] || 'log-default';
+    const ts   = new Date().toLocaleTimeString('en-GB',{hour12:false});
+    const line = document.createElement('div');
+    line.className = cls + ' break-words';
+    line.textContent = `[${ts}] ${msg}`;
+    FEED.appendChild(line);
+    FEED.scrollTop = FEED.scrollHeight;
+  }
+
+  function clearFeed() {
+    FEED.innerHTML = '<div class="log-default">— Feed cleared —</div>';
+    feedInitialized = false;
+  }
+
+  // ── Vector grid ───────────────────────────────────────────────────────
+  const VECTOR_CARDS = {
+    toctou_concurrency:    'v1',
+    replay_idempotency:    'v2',
+    self_transfer_invariant:'v3',
+    rapid_burst:           'v4',
+  };
+
+  function updateVectorCard(vector, corrupted, detail) {
+    const id = VECTOR_CARDS[vector];
+    if (!id) return;
+    const card   = document.getElementById(`vec-${id}`);
+    const detEl  = document.getElementById(`vec-${id}-detail`);
+    if (!card) return;
+    card.classList.remove('ok','fail','pending');
+    card.classList.add(corrupted ? 'fail' : 'ok');
+    if (detEl) detEl.textContent = detail || (corrupted ? 'EXPLOITED' : 'CLEAN');
+  }
+
+  function resetVectorCards() {
+    Object.values(VECTOR_CARDS).forEach(id => {
+      const card = document.getElementById(`vec-${id}`);
+      if (card) { card.classList.remove('ok','fail'); card.classList.add('pending'); }
+      const det = document.getElementById(`vec-${id}-detail`);
+      if (det) det.textContent = 'waiting…';
+    });
+  }
+
+  // ── Diff viewer ───────────────────────────────────────────────────────
+  function renderDiff(raw) {
+    if (!raw || !raw.trim()) return;
+    DIFF_EL.innerHTML = '';
+    DIFF_BADGE.textContent = 'patch applied';
+    DIFF_BADGE.className = 'text-xs text-green-400 bg-gray-800 rounded px-2 py-0.5 border border-green-700';
+    raw.split('\n').forEach(line => {
+      const span = document.createElement('span');
+      span.textContent = line + '\n';
+      span.className = (
+        (line.startsWith('+++') || line.startsWith('---')) ? 'diff-meta' :
+        line.startsWith('@@') ? 'diff-hunk' :
+        line.startsWith('+') ? 'diff-add' :
+        line.startsWith('-') ? 'diff-remove' :
+        line.startsWith('#') ? 'text-gray-500' : 'text-gray-400'
+      ) + ' block';
+      DIFF_EL.appendChild(span);
+    });
+  }
+
+  // ── Verdict banner ────────────────────────────────────────────────────
+  function showVerdict(score) {
+    VERDICT.classList.remove('hidden');
+    if (score >= 100) {
+      VERDICT.textContent = '✅ BATTLE-HARDENED — 4/4 Vectors Neutralised — 100% Certified';
+      VERDICT.className = 'w-full rounded-lg border border-green-700 bg-green-900/40 px-4 py-2.5 text-center font-semibold text-sm text-green-300';
+    } else {
+      VERDICT.textContent = `⚠️ Partial Resilience — ${score.toFixed(1)}%`;
+      VERDICT.className = 'w-full rounded-lg border border-yellow-700 bg-yellow-900/30 px-4 py-2.5 text-center font-semibold text-sm text-yellow-300';
+    }
+  }
+
+  // ── Certificate lock/unlock ───────────────────────────────────────────
+  function unlockCert() {
+    BTN_CERT.disabled = false;
+    BTN_CERT.classList.remove('cursor-not-allowed','opacity-60','text-gray-600',
+      'bg-gray-800','border-gray-700');
+    BTN_CERT.classList.add('unlocked','cursor-pointer','text-yellow-200',
+      'bg-yellow-900/30','border-yellow-500/60','hover:bg-yellow-900/50');
+    BTN_CERT.innerHTML = '🏅 Download Resilience Certificate';
+    BTN_CERT.title = 'View & download signed resilience certificate';
+  }
+
+  // ── SHA-256 digest (Web Crypto API) ──────────────────────────────────
+  async function sha256(str) {
+    try {
+      const buf = await crypto.subtle.digest(
+        'SHA-256', new TextEncoder().encode(str)
+      );
+      return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2,'0')).join('');
+    } catch { return 'digest-unavailable'; }
+  }
+
+  // ── Certificate modal ─────────────────────────────────────────────────
+  let _certData = null;
+
+  async function downloadCert() {
+    if (!currentBattleId) {
+      try {
+        const bRes = await fetch('/api/battles');
+        const bList = await bRes.json();
+        if (bList && bList.length > 0) {
+          currentBattleId = bList[bList.length - 1].battle_id;
+        }
+      } catch(e) {}
+    }
+    if (!currentBattleId) {
+      alert("Please click [ 🚀 Launch Assault & Defense ] first to run a battle and generate a certificate!");
+      return;
+    }
+    try {
+      const r = await fetch(`/api/battle/${currentBattleId}/certificate`);
+      if (!r.ok) {
+        console.error('Certificate endpoint returned error:', r.status);
+        return;
+      }
+      _certData = await r.json();
+
+      // Populate modal fields
+      document.getElementById('cert-battle-id').textContent =
+        (_certData.battle_id || '').substring(0,8) + '…  (' + (_certData.battle_id || '') + ')';
+      document.getElementById('cert-issued-at').textContent =
+        _certData.issued_at ? new Date(_certData.issued_at).toLocaleString() : '—';
+
+      // Populate target scope & verified files
+      const scopeEl = document.getElementById('cert-target-scope');
+      if (scopeEl) scopeEl.textContent = _certData.target_scope || 'Banking Ledger Microservice (Port 9000)';
+
+      const filesBox = document.getElementById('cert-files-box');
+      const filesList = document.getElementById('cert-files-list');
+      const filesCount = document.getElementById('cert-files-count');
+      const files = _certData.target_files || [];
+
+      if (files && files.length > 0) {
+        filesBox.classList.remove('hidden');
+        filesCount.textContent = `${files.length} file${files.length > 1 ? 's' : ''} verified & hardened`;
+        filesList.innerHTML = files.map(f => `
+          <div class="flex items-center justify-between py-1 border-b border-gray-800/80 last:border-0">
+            <span class="text-gray-200 flex items-center gap-2"><span class="text-emerald-400">🛡️</span> <span class="font-medium">${f}</span></span>
+            <span class="text-emerald-400 font-semibold text-[11px] bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">IMMUNE / HARDENED ON DISK</span>
+          </div>
+        `).join('');
+      } else {
+        filesBox.classList.add('hidden');
+      }
+
+      // Compute SHA-256 digest over key fields
+      const digestInput = [
+        _certData.battle_id, _certData.issued_at,
+        String(_certData.resilience_score), _certData.verdict,
+        (_certData.target_files || []).join(',')
+      ].join('|');
+      const digest = await sha256(digestInput);
+      document.getElementById('cert-digest').textContent =
+        digest.substring(0,16) + '…' + digest.substring(48);
+
+      // Open modal
+      document.getElementById('cert-modal').classList.add('open');
+    } catch(e) { console.error('cert modal error:', e); }
+  }
+
+  function closeCertModal() {
+    document.getElementById('cert-modal').classList.remove('open');
+  }
+
+  async function exportRawJSON() {
+    if (!_certData) return;
+    const blob = new Blob([JSON.stringify(_certData, null, 2)], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `resilience-cert-${(_certData.battle_id||'').substring(0,8)}.json`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  // Keyboard: Escape closes modal
+  document.addEventListener('keydown', e => { if (e.key==='Escape') closeCertModal(); });
+
+  // ── 1-click autonomous launch ─────────────────────────────────────────
+  async function launchAutonomous() {
+    BTN_LAUNCH.disabled = true;
+    BTN_LAUNCH.classList.add('opacity-50');
+    // Reset UI
+    resetVectorCards();
+    VERDICT.classList.add('hidden');
+    DIFF_EL.textContent = '— Waiting for patch —';
+    DIFF_BADGE.textContent = 'waiting';
+    DIFF_BADGE.className = 'text-xs text-gray-600 bg-gray-800 rounded px-2 py-0.5 border border-gray-700';
+    BTN_CERT.disabled = true;
+    BTN_CERT.classList.remove('unlocked');
+
+    try {
+      const sel = document.getElementById('challenge-select');
+      const attackType = sel ? sel.value : '4vector';
+      const res  = await fetch('/api/action/autonomous_pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attack_type: attackType }),
+      });
+      const data = await res.json();
+      if (data.battle_id) currentBattleId = data.battle_id;
+    } catch(e) {
+      console.error('launch error:', e);
+    } finally {
+      setTimeout(() => {
+        BTN_LAUNCH.disabled = false;
+        BTN_LAUNCH.classList.remove('opacity-50');
+      }, 4000);
+    }
+  }
+
+  // ── SSE event parsing ─────────────────────────────────────────────────
+  function handleVectorMessage(message) {
+    // Parse [V1]/[V2]/[V3]/[V4] tags from feed messages
+    const m = message.match(/\[V([1-4])\]\s+(EXPLOITED|CLEAN)\s+—\s+(.+)/);
+    if (m) {
+      const vNum   = m[1];
+      const status = m[2];
+      const detail = m[3];
+      const keyMap = {'1':'toctou_concurrency','2':'replay_idempotency',
+                      '3':'self_transfer_invariant','4':'rapid_burst'};
+      updateVectorCard(keyMap[vNum], status === 'EXPLOITED', detail);
+    }
+    // Also parse PATCH VERIFIED lines for vector grid reset
+    if (message.includes('PATCH VERIFIED') || message.includes('all 4 vectors neutralised') || message.includes('BATCH COMPLETE') || message.includes('TARGET COMPLETE')) {
+      Object.entries(VECTOR_CARDS).forEach(([v]) => updateVectorCard(v, false, 'NEUTRALISED'));
+    }
+  }
+
+  function handleEvent(data) {
+    let evt;
+    try { evt = JSON.parse(data); } catch { return; }
+    const { event_type, battle_id, resilience_score, message, diff } = evt;
+
+    if (battle_id && (!currentBattleId || event_type === 'BATTLE_CREATED'))
+      currentBattleId = battle_id;
+
+    setStatus(event_type);
+    appendLog(event_type, message || event_type);
+    if (message) handleVectorMessage(message);
+
+    if (typeof resilience_score === 'number') setGauge(resilience_score);
+
+    if (event_type === 'BATTLE_CREATED') {
+      META_TYPE.textContent = evt.attack_type || '—';
+      META_BID.textContent  = (battle_id || '').substring(0,8) + '…';
+      META_REQS.textContent = '—';
+      META_VHIT.textContent = '—';
+      setGauge(0);
+    }
+
+    if (event_type === 'ATTACKING') playSiren();
+
+    if (event_type === 'CRASHED' && battle_id === currentBattleId)
+      fetchBattleDetails(battle_id);
+
+    if (diff && diff.trim()) renderDiff(diff);
+
+    if (event_type === 'PATCHING') { playRepair(); }
+
+    if (event_type === 'HEALED' && battle_id === currentBattleId) {
+      fetchBattleDetails(battle_id);
+      // Trigger Granite RCA after telemetry is ready
+      setTimeout(() => fetchGraniteRCA(battle_id), 600);
+    }
+
+    if (event_type === 'CERTIFIED') {
+      showVerdict(resilience_score || 0);
+      playVictory();
+      unlockCert();
+      if (battle_id) setTimeout(() => fetchGraniteRCA(battle_id), 400);
+    }
+  }
+
+  // ── IBM Granite 3.0 RCA ───────────────────────────────────────────────
+  async function fetchGraniteRCA(bid) {
+    const card   = document.getElementById('granite-card');
+    const body   = document.getElementById('granite-body');
+    const status = document.getElementById('granite-status');
+    if (!card || !body || !status) return;
+
+    status.textContent = 'inferring…';
+    status.className   = 'text-xs text-blue-300 bg-blue-900/40 rounded px-2 py-0.5 border border-blue-700 animate-pulse';
+
+    try {
+      const r = await fetch(`/api/battle/${bid}/granite_rca`);
+      if (!r.ok) { status.textContent = 'no data'; return; }
+      const d = await r.json();
+
+      body.innerHTML = `
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center gap-2 text-blue-300 font-semibold pb-1 border-b border-blue-900/60">
+            <span>🤖</span>
+            <span>Model: <span class="mono font-normal text-blue-200">${d.model}</span></span>
+            <span class="ml-auto text-blue-500 font-normal">v${d.model_version}</span>
+          </div>
+          <div>
+            <div class="text-gray-500 uppercase tracking-wider text-[10px] font-bold mb-1">Telemetry Diagnosis</div>
+            <div class="text-gray-300 leading-relaxed bg-gray-800/50 rounded p-2 border border-gray-700/40">
+              ${d.telemetry_diagnosis}
+            </div>
+          </div>
+          <div>
+            <div class="text-gray-500 uppercase tracking-wider text-[10px] font-bold mb-1">Prescribed Remediation</div>
+            <div class="text-blue-200 leading-relaxed bg-blue-950/40 rounded p-2 border border-blue-900/40">
+              ${d.prescribed_remediation}
+            </div>
+          </div>
+          <div class="flex items-start justify-between pt-1 border-t border-blue-900/40 gap-2">
+            <div class="space-y-0.5 text-[10px]">
+              ${(d.patch_layers||[]).map(l=>`<div class="text-green-400/80 flex items-center gap-1"><span class="text-green-500">▸</span>${l}</div>`).join('')}
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-green-400 font-bold text-base">${d.synthesis_confidence}%</div>
+              <div class="text-gray-500 text-[10px]">CONFIDENCE</div>
+              <div class="text-yellow-500/80 text-[10px] font-semibold mt-0.5">${d.verification_status}</div>
+            </div>
+          </div>
+        </div>`;
+
+      status.textContent = 'synthesised';
+      status.className   = 'text-xs text-green-400 bg-green-900/30 rounded px-2 py-0.5 border border-green-700';
+      card.classList.add('visible');
+    } catch(e) {
+      status.textContent = 'error';
+      status.className   = 'text-xs text-red-400 bg-red-900/30 rounded px-2 py-0.5 border border-red-800';
+    }
+  }
+
+  // ── REST fetch for full battle details ───────────────────────────────
+  async function fetchBattleDetails(bid) {
+    try {
+      const r = await fetch(`/api/battle/${bid}`);
+      if (!r.ok) return;
+      const b = await r.json();
+      const t = b.telemetry;
+      if (t) {
+        META_REQS.textContent = `${t.successful}/${t.total_requests} ok`;
+        const vhit = (t.vector_results || []).filter(v => v.corrupted).length;
+        META_VHIT.textContent = `${vhit}/4`;
+        META_VHIT.className   = vhit > 0 ? 'text-red-400' : 'text-green-400';
+        (t.vector_results || []).forEach(vr =>
+          updateVectorCard(vr.vector, vr.corrupted, vr.detail));
+      }
+      if (b.patch_diff && b.patch_diff.trim()) renderDiff(b.patch_diff);
+      if (b.status === 'CERTIFIED') {
+        showVerdict(b.resilience_score);
+        unlockCert();
+        setTimeout(() => fetchGraniteRCA(bid), 400);
+      }
+    } catch {}
+  }
+
+  // ── Targets Folder Badge Poller ───────────────────────────────────────
+  async function updateTargetsBadge() {
+    try {
+      const res = await fetch('/api/targets');
+      const data = await res.json();
+      const textEl = document.getElementById('targets-badge-text');
+      const boxEl  = document.getElementById('targets-badge-container');
+      if (!textEl || !boxEl) return;
+
+      if (data.count === 0) {
+        textEl.textContent = 'targets/ is empty (Microservice mode)';
+        boxEl.className = 'flex items-center gap-1.5 px-3 py-1.5 bg-gray-800/60 border border-gray-700/60 rounded-xl text-xs text-gray-400';
+      } else if (data.count === 1) {
+        textEl.textContent = `1 target file: ${data.files[0]}`;
+        boxEl.className = 'flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/70 border border-emerald-600/60 rounded-xl text-xs text-emerald-300 font-bold';
+      } else {
+        textEl.textContent = `${data.count} target files in targets/`;
+        boxEl.className = 'flex items-center gap-1.5 px-3 py-1.5 bg-blue-950/70 border border-blue-600/60 rounded-xl text-xs text-blue-300 font-bold';
+      }
+      boxEl.title = data.files ? `Files: ${data.files.join(', ')}` : '';
+    } catch(e) {}
+  }
+
+  // ── SSE connection ────────────────────────────────────────────────────
+  function connectSSE() {
+    const es = new EventSource('/events');
+    es.onopen    = () => console.log('[SSE] connected');
+    es.onmessage = e  => handleEvent(e.data);
+    es.onerror   = () => { es.close(); setTimeout(connectSSE, 3000); };
+  }
+
+  // ── Init (Always starts clean & fresh on page reload) ────────────────
+  setGauge(0);
+  resetVectorCards();
+  connectSSE();
+  updateTargetsBadge();
+  setInterval(updateTargetsBadge, 4000);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "codexarena": {
+      "command": "python",
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "${workspaceFolder}/codexarena",
+      "alwaysAllow": [
+        "launch_arena_battle",
+        "get_crash_telemetry",
+        "apply_hot_patch",
+        "verify_resilience",
+        "export_resilience_certificate"
+      ]
+    }
+  }
+}
