@@ -16,15 +16,44 @@ from pathlib import Path
 from arena.battle_manager import battle_manager
 from arena.models import BattleStatus, TelemetryRecord, VectorResult
 
+import shutil
+import tempfile
+
 TARGETS_DIR = Path(__file__).parent.parent / "targets"
 
 
 def get_target_files() -> list[Path]:
-    """Returns all non-private .py files in targets/ folder."""
-    if not TARGETS_DIR.exists():
+    """
+    Returns all non-private .py files.
+    In serverless environments (e.g. Vercel), copies targets to a writable temp directory
+    so the Red Agent can execute and Blue Agent can patch files on disk with full fidelity!
+    """
+    # Check if we should use writable temp dir
+    is_serverless = "VERCEL" in sys.modules or "AWS_LAMBDA_FUNCTION_NAME" in Path.__module__ or not TARGETS_DIR.exists()
+    
+    # Try testing write permission on TARGETS_DIR
+    can_write = False
+    try:
+        test_file = TARGETS_DIR / ".write_test"
+        test_file.touch()
+        test_file.unlink()
+        can_write = True
+    except (OSError, PermissionError):
+        can_write = False
+
+    if not can_write:
+        tmp_dir = Path(tempfile.gettempdir()) / "codexarena_targets"
+        if not tmp_dir.exists() and TARGETS_DIR.exists():
+            shutil.copytree(TARGETS_DIR, tmp_dir, dirs_exist_ok=True)
+        scan_dir = tmp_dir if tmp_dir.exists() else TARGETS_DIR
+    else:
+        scan_dir = TARGETS_DIR
+
+    if not scan_dir.exists():
         return []
+
     return sorted([
-        f for f in TARGETS_DIR.glob("*.py")
+        f for f in scan_dir.glob("*.py")
         if not f.name.startswith("_") and f.is_file()
     ])
 
