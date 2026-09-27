@@ -86,6 +86,8 @@ codexarena/
 │   ├── hud_server.py         FastAPI SSE server  (port 8000)
 │   └── templates/index.html  Dark-mode Tailwind cockpit & interactive certificate
 │
+├── bob_sessions/             IBM Bob task session consumption summary screenshots (Hackathon Deliverable)
+│
 └── .bob/
     └── mcp.json              Bob MCP server registration
 ```
