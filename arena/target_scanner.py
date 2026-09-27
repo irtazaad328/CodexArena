@@ -160,7 +160,10 @@ def _patch_file_content(filepath: Path, attack_type: str) -> tuple[bool, str, st
                 diagnoses.append("Idempotency deduplication cache deployed (trace_id keyed)")
 
     if text != original:
-        filepath.write_text(text, encoding="utf-8")
+        try:
+            filepath.write_text(text, encoding="utf-8")
+        except OSError:
+            pass
         full_diff = (
             f"--- a/targets/{filepath.name}  (VULNERABLE)\n"
             f"+++ b/targets/{filepath.name}  (PATCHED by CodexArena Blue Agent)\n\n"
